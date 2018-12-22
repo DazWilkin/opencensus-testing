@@ -11,9 +11,9 @@ import (
 	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"github.com/dazwilkin/opencensus/stats/view"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	googlepb "github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/api/iterator"
+	"google.golang.org/genproto/googleapis/api/metric"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
@@ -24,7 +24,6 @@ var (
 )
 
 // Filter represents a Stackdriver Filter string
-//TODO(dazwilkin) Would it be preferable to represent Stackdriver (string) Filters as a type (with methods)?
 type Filter string
 
 // NewFilter returns a new Filter (an empty string)
@@ -42,26 +41,38 @@ func (f *Filter) add(s string) {
 }
 
 // AddResourceType optionally adds a resource.type string to the Filter
-//TODO(dazwilkin) there should only be one resource.type entry in a filter
 func (f *Filter) AddResourceType(t string) {
-	f.add(fmt.Sprintf("resource.type=\"%s\"", t))
+	const (
+		resourceType = "resource.type"
+	)
+	if strings.Contains(f.String(), resourceType) {
+		glog.Fatalf("Stackdriver filters may only contain one '%s'", resourceType)
+	}
+	f.add(fmt.Sprintf("%s=\"%s\"", resourceType, t))
 }
 
 // AddMetricType optionally adds a metric.type corresponding to an OpenCensus custom metric to the Filter
-//TODO(dazwilkin) there should only be one metric.type entry in a filter
 func (f *Filter) AddMetricType(t string) {
 	const (
 		metricPath = "custom.googleapis.com/opencensus"
+		metricType = "metric.type"
 	)
-	f.add(fmt.Sprintf("metric.type=\"%s/%s\"", metricPath, t))
+	if strings.Contains(f.String(), metricType) {
+		glog.Fatalf("Stackdriver filters may only contain one '%s'", metricType)
+	}
+	f.add(fmt.Sprintf("%s=\"%s/%s\"", metricType, metricPath, t))
 
 }
 
 // AddLabels optionally adds a set (as a map) of metric.label.[key]=[value] to the Filter
+//TODO(dazwilkin) Check for duplicate metric.label.[key]
 func (f *Filter) AddLabels(m map[string]string) {
+	const (
+		metricLabel = "metric.label"
+	)
 	labels := []string{}
 	for label, value := range m {
-		metricLabel := fmt.Sprintf("metric.label.%s=\"%s\"", label, value)
+		metricLabel := fmt.Sprintf("%s.\"%s\"=\"%s\"", metricLabel, label, value)
 		labels = append(labels, metricLabel)
 	}
 	f.add(strings.Join(labels, " "))
@@ -96,39 +107,51 @@ func (i *Importer) Name() string {
 	return i.name
 }
 
-func createInterval(start, end time.Time) *monitoringpb.TimeInterval {
-	return &monitoringpb.TimeInterval{
-		StartTime: &googlepb.Timestamp{
-			// One minute ago
-			Seconds: start.Unix(),
-		},
-		EndTime: &googlepb.Timestamp{
-			Seconds: end.Unix(),
-		},
-	}
-}
-func intervalToString(ts *timestamp.Timestamp) string {
-	return time.Unix(ts.Seconds, 0).Format(time.RFC3339)
-}
-func mapLabelsValues(labels, values []string) map[string]string {
-	m := map[string]string{}
-	// Only proceed if there
-	// - are labels and values to map
-	// - is no discrepancy between the set of labels and values
-	if labels == nil && values == nil {
-		return m
-	}
-	if len(labels) != len(values) {
-		glog.Fatal("Inconsistency between labels and values")
-	}
-	for i, label := range labels {
-		m[label] = values[i]
-	}
-	return m
-}
-
 // Value returns the Importer's value for the View, with the label values and the time specified
 func (i *Importer) Value(v *view.View, labelValues []string, t time.Time) (float64, error) {
+	// Private functions
+	createInterval := func(start, end time.Time) *monitoringpb.TimeInterval {
+		return &monitoringpb.TimeInterval{
+			StartTime: &googlepb.Timestamp{
+				Seconds: start.Unix(),
+			},
+			EndTime: &googlepb.Timestamp{
+				Seconds: end.Unix(),
+			},
+		}
+	}
+	getFloat64Value := func(t metric.MetricDescriptor_ValueType, p *monitoringpb.Point) (float64, error) {
+		switch t {
+		case metricpb.MetricDescriptor_DISTRIBUTION:
+			dist := p.GetValue().GetDistributionValue()
+			count := dist.GetCount()
+			mean := dist.GetMean()
+			return float64(count) * mean, nil
+		case metricpb.MetricDescriptor_DOUBLE:
+			return p.GetValue().GetDoubleValue(), nil
+		case metricpb.MetricDescriptor_INT64:
+			return float64(p.GetValue().GetInt64Value()), nil
+		default:
+			//TODO(dazwilkin) There are more types to enumerate
+			return 0.0, nil
+		}
+	}
+	mapLabelsValues := func(labels, values []string) map[string]string {
+		m := map[string]string{}
+		// Only proceed if there
+		// - are labels and values to map
+		// - is no discrepancy between the set of labels and values
+		if labels == nil && values == nil {
+			return m
+		}
+		if len(labels) != len(values) {
+			glog.Fatal("Inconsistency between labels and values")
+		}
+		for i, label := range labels {
+			m[label] = values[i]
+		}
+		return m
+	}
 
 	f := NewFilter()
 	f.AddResourceType("global")
@@ -144,34 +167,20 @@ func (i *Importer) Value(v *view.View, labelValues []string, t time.Time) (float
 		Interval: createInterval(t.Add(time.Minute*-1), t),
 	}
 	it := client.ListTimeSeries(context.TODO(), req)
+
+	// We only want the most-recent entry in the timeseries
 	resp, err := it.Next()
 	if err == iterator.Done {
 		// There are no results
-		return 0.0, errors.New("There are no results")
+		return 0.0, errors.New("No timeseries match the filter")
 	}
 	if err != nil {
+		// Something untoward
 		return 0.0, err
 	}
-	var processPoint func(*monitoringpb.Point) float64
-	switch resp.GetValueType() {
-	case metricpb.MetricDescriptor_DISTRIBUTION:
-		processPoint = func(p *monitoringpb.Point) float64 {
-			dist := p.GetValue().GetDistributionValue()
-			count := dist.GetCount()
-			mean := dist.GetMean()
-			return float64(count) * mean
-		}
-	case metricpb.MetricDescriptor_DOUBLE:
-		processPoint = func(p *monitoringpb.Point) float64 {
-			return p.GetValue().GetDoubleValue()
-		}
-	case metricpb.MetricDescriptor_INT64:
-		processPoint = func(p *monitoringpb.Point) float64 {
-			return float64(p.GetValue().GetInt64Value())
-		}
-	}
 
-	return processPoint(resp.Points[0]), nil
+	// And only the most recent point from the most recent entry
+	return getFloat64Value(resp.GetValueType(), resp.Points[0])
 }
 
 // Options represents the configuration of an OpenCensus Importer

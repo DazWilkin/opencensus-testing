@@ -71,9 +71,9 @@ func TestFilter_AddLabels(t *testing.T) {
 			// Ordering is not relevant so using 'Contains' to find string existence
 			if got, want := strings.Contains(
 				f.String(),
-				fmt.Sprintf("metric.label.%s=\"%s\"", key, value),
+				fmt.Sprintf("metric.label.\"%s\"=\"%s\"", key, value),
 			), true; got != want {
-				t.Errorf("[addLabels] Unable to find 'metric.label.%s=\"%s\"'", key, value)
+				t.Errorf("[addLabels] Unable to find 'metric.label.\"%s\"=\"%s\"'", key, value)
 			}
 		}
 	})
@@ -123,7 +123,7 @@ func TestFilter_AddMultipleParts(t *testing.T) {
 		"key1": "value1",
 		"key2": "value2",
 	})
-	if got, want := f.String(), "resource.type=\"R\" metric.type=\"custom.googleapis.com/opencensus/M\" metric.label.key1=\"value1\" metric.label.key2=\"value2\""; got != want {
+	if got, want := f.String(), "resource.type=\"R\" metric.type=\"custom.googleapis.com/opencensus/M\" metric.label.\"key1\"=\"value1\" metric.label.\"key2\"=\"value2\""; got != want {
 		t.Errorf("[addMultipleParts] got=\"%s\" want=\"%s\"", got, want)
 	}
 }
