@@ -1,14 +1,10 @@
 package view
 
-import (
-	"time"
-
-	"github.com/golang/glog"
-)
+import "time"
 
 var (
-	importers = make(map[string]Importer)
-	views     = make(map[string]*View)
+	importers []Importer
+	views     []*View
 )
 
 // Importer defines the interface for importers
@@ -30,23 +26,13 @@ type View struct {
 
 // Register registers a view
 func Register(vv ...*View) error {
-	for _, v := range vv {
-		name := v.Name
-		if name == "" {
-			glog.Fatal("View name cannot be \"\"")
-		}
-		views[v.Name] = v
-	}
+	views = append(views, vv...)
 	return nil
 }
 
 // RegisterImporter adds an Importer to the View
 func RegisterImporter(i Importer) {
-	name := i.Name()
-	if name == "" {
-		glog.Fatal("Importer name cannot be \"\"")
-	}
-	importers[i.Name()] = i
+	importers = append(importers, i)
 }
 
 // Value retrieves a value from an OpenCensus View
