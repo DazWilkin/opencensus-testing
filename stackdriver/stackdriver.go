@@ -26,13 +26,18 @@ var (
 // It gets values for measurements from the service
 // For Stackdriver, we'll use ADCs but need a robot with >= Monitoring Viewer
 type Importer struct {
-	name string
+	name    string
+	options Options
 }
 
 // NewImporter creates a new importer using the Options provided
 func NewImporter(o Options) (*Importer, error) {
+	if o.MetricPrefix != "" {
+		glog.Infof("[NewImporter] MetricPrefix (%s) was provided but this only affects the metric's displayed name *not* its type", o.MetricPrefix)
+	}
 	return &Importer{
-		name: "stackdriver",
+		name:    "stackdriver",
+		options: o,
 	}, nil
 }
 
@@ -89,12 +94,20 @@ func (i *Importer) Value(v *view.View, labelValues []string, t time.Time) (float
 
 	f := NewFilter()
 	f.AddResourceType("global")
-	f.AddMetricType(v.Name)
+
+	//TODO(dazwilkin) Prefixes the displayed name but not the metric type
+	f.AddMetricType(func(v *view.View) string {
+		name := v.Name
+		// if i.options.MetricPrefix != "" {
+		// 	name = i.options.MetricPrefix + "/" + name
+		// }
+		return name
+	}(v))
 
 	// Convert Labels[],Values[]-->map(Label=Value)
 	f.AddLabels(mapLabelsValues(v.LabelNames, labelValues))
 
-	fmt.Println(t.Format(time.RFC3339))
+	fmt.Println(f.String())
 	req := &monitoringpb.ListTimeSeriesRequest{
 		Name:     fmt.Sprintf("projects/%s", projectID),
 		Filter:   f.String(),
