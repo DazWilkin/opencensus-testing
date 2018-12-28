@@ -47,14 +47,25 @@ func (i *Importer) Value(v *view.View, labelValues []string, t time.Time) (float
 		log.Fatal(err)
 	}
 
-	for _, s := range ss {
+	// for _, s := range ss {
+	// 	log.Printf("Metric: %v", *s.Metric)
+	// 	for _, p := range s.Points {
+	// 		log.Printf("[%v] %v", time.Unix(0, int64(*p[0])*int64(time.Millisecond)), *p[1])
+	// 	}
+	// }
+
+	if len(ss) >= 1 {
+		s := ss[0]
 		log.Printf("Metric: %v", *s.Metric)
-		for _, p := range s.Points {
+		if len(s.Points) >= 1 {
+			p := s.Points[0]
 			log.Printf("[%v] %v", time.Unix(0, int64(*p[0])*int64(time.Millisecond)), *p[1])
+			return *p[1], nil
 		}
+		return 0.0, nil
 	}
 
-	return 0, nil
+	return 0.0, nil
 }
 
 // Options represents the configuration of an OpenCensus Importer

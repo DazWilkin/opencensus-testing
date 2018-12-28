@@ -1,17 +1,13 @@
 package view
 
-import "time"
-
-var (
-	importers []Importer
-	views     []*View
+import (
+	"errors"
+	"time"
 )
 
-// Importer defines the interface for importers
-type Importer interface {
-	Name() string
-	Value(v *View, labelValues []string, t time.Time) (float64, error)
-}
+var (
+	views = make(map[string]*View)
+)
 
 // View represents an OpenCensus View
 // It must have a name as a unique identifier
@@ -26,13 +22,14 @@ type View struct {
 
 // Register registers a view
 func Register(vv ...*View) error {
-	views = append(views, vv...)
+	for _, v := range vv {
+		name := v.Name
+		if name == "" {
+			return errors.New("View name must not be \"\"")
+		}
+		views[v.Name] = v
+	}
 	return nil
-}
-
-// RegisterImporter adds an Importer to the View
-func RegisterImporter(i Importer) {
-	importers = append(importers, i)
 }
 
 // Value retrieves a value from an OpenCensus View

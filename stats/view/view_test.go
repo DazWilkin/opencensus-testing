@@ -2,19 +2,25 @@ package view
 
 import (
 	"testing"
-	"time"
 )
 
-// Importer implements the Importer interface in order to be able to test the interface
-type importer struct {
-	name string
+func Test_Register(t *testing.T) {
+	var v *View
+	t.Run("Empty Name", func(t *testing.T) {
+		v = &View{
+			Name: "",
+		}
+		if got, want := Register(v), "View name must not be \"\""; got.Error() != want {
+			t.Errorf("got %s, wanted %s", got, want)
+		}
+	})
+	t.Run("Acceptable Name", func(t *testing.T) {
+		v = &View{
+			Name: "X",
+		}
+		Register(v)
+		if got, want := views["X"].Name, "X"; got != want {
+			t.Errorf("got %s, wanted %s", got, want)
+		}
+	})
 }
-
-func (i *importer) Name() string {
-	return i.name
-}
-func (i *importer) Value(v *View, labelValues []string, t time.Time) (float64, error) {
-	return 0.0, nil
-}
-func Test_Register(t *testing.T)         {}
-func Test_RegisterImporter(t *testing.T) {}

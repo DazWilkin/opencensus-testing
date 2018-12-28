@@ -128,9 +128,7 @@ func TestFilter_AddMultipleParts(t *testing.T) {
 	}
 }
 
-func TestView_Value(t *testing.T) {
-
-}
+func TestView_Value(t *testing.T) {}
 
 func TestNewImporter(t *testing.T) {
 	//TODO(dazwilkin) Add test(s) for returned importer
