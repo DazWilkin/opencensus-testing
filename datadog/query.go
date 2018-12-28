@@ -1,6 +1,9 @@
 package datadog
 
-import "strings"
+import (
+	"log"
+	"strings"
+)
 
 type Query struct {
 	metric string
@@ -8,6 +11,9 @@ type Query struct {
 }
 
 func NewQuery(metric string) *Query {
+	if metric == "" {
+		log.Fatal("[NewQuery] Unable to create query for a metric with no name (\"\")")
+	}
 	tags := make(map[string]string)
 	return &Query{
 		metric: metric,

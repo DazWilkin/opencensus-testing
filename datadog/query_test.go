@@ -5,26 +5,36 @@ import (
 	"testing"
 )
 
-func Test_AddHost(t *testing.T) {
-	q := NewQuery("freddie")
+const (
+	hostName   = "host"
+	metricName = "Freddie"
+)
+
+func Test_NewQuery(t *testing.T) {
+	q := NewQuery(metricName)
+	if got, want := q.metric, metricName; got != want {
+		t.Errorf("got: %s; want: %s", got, want)
+	}
+}
+func Test_AddHostname(t *testing.T) {
+	q := NewQuery(metricName)
 	t.Run("Test Empty Host", func(t *testing.T) {
 		host := ""
 		q.AddHostname(host)
-		if got, want := strings.Contains(q.TagString(), "host"), false; got != want {
+		if got, want := strings.Contains(q.TagString(), hostName), false; got != want {
 			t.Errorf("got: %t; want: %t", got, want)
 		}
 	})
 	t.Run("Test Non-Empty Host", func(t *testing.T) {
-		host := "freddie"
-		q.AddHostname(host)
-		if got, want := strings.Contains(q.TagString(), "{host:"+host+"}"), true; got != want {
+		q.AddHostname(hostName)
+		if got, want := strings.Contains(q.TagString(), "{host:"+hostName+"}"), true; got != want {
 			t.Errorf("got: %t; want: %t", got, want)
 		}
 
 	})
 }
 func Test_AddTagValue(t *testing.T) {
-	q := NewQuery("freddie")
+	q := NewQuery(metricName)
 	t.Run("Empty Tags", func(t *testing.T) {
 		if got, want := q.TagString(), ""; got != want {
 			t.Errorf("got: %s; want: %s", got, want)
@@ -53,5 +63,19 @@ func Test_AddTagValue(t *testing.T) {
 		}
 
 	})
+
+}
+func Test_TagString(t *testing.T) {
+	q := NewQuery(metricName)
+	q.AddTagValue("X", "x")
+	q.AddTagValue("Y", "y")
+	if got, want := strings.Contains(q.TagString(), "X:x"), true; got != want {
+		t.Errorf("got %t; want %t", got, want)
+	}
+	if got, want := strings.Contains(q.TagString(), "Y:y"), true; got != want {
+		t.Errorf("got %t; want %t", got, want)
+	}
+}
+func Test_String(t *testing.T) {
 
 }
