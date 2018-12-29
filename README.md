@@ -79,7 +79,9 @@ EXPORT PATH=${GOPATH}/bin:${PATH}
 git clone github.com/dazwilkin/opencensus-testing
 
 # Unfortunately, I chose a bad github repo name, this will rename it
-mv ${GOPATH}/src/github.com/dazwilkin/opencensus-testing ${GOPATH}/src/github.com/dazwilkin/opencensus
+mv \
+  ${GOPATH}/src/github.com/dazwilkin/opencensus-testing \
+  ${GOPATH}/src/github.com/dazwilkin/opencensus
 
 cd ${GOPATH}/src/github.com/dazwilkin/opencensus/examples
 ```
