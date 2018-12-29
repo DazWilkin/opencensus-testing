@@ -27,7 +27,7 @@ defer sd.Flush()
 view.RegisterExporter(sd)
 
 dd, err := datadog.NewExporter(datadog.Options{
-	Namespace: namespace,
+    Namespace: namespace,
 })
 if err != nil {
     log.Fatal(err)
@@ -49,7 +49,7 @@ if err != nil {
 view.RegisterImporter(sd)
 
 dd, err := datadog.NewImporter(datadog.Options{
-	Namespace: namespace,
+    Namespace: namespace,
 })
 if err != nil {
     log.Fatal(err)
