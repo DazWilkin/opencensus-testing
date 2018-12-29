@@ -111,7 +111,9 @@ gcloud iam service-accounts keys create ${FILE} \
 
 for ROLE in "monitoring.metricWriter" "monitoring.viewer"
 do
-  gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:${ACCOUNT}@${PROJECT}.iam.gserviceaccount.com --role=roles/${ROLE}
+  gcloud projects add-iam-policy-binding $PROJECT \
+  --member=serviceAccount:${ACCOUNT}@${PROJECT}.iam.gserviceaccount.com \
+  --role=roles/${ROLE}
 done
 
 # This should take you to the Stackdriver Console workspace provisioner for $PROJECT
