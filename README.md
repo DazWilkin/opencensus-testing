@@ -209,6 +209,21 @@ interval.startTime: 2018-12-28T00:00:00-08:00
 
 To export to Datadog, you will need a Datadog account.
 
+OpenCensus routes metric data to the Datadog Agent. By default, the OpenCensus Importer code assumes the Agent is running on localhost:8125 (UDP). If necessary, you may reconfigure this. Otherwise, you may run the Datadog Agent in a docker container:
+
+```bash
+DD_API=[[YOUR-API-KEY]] \
+
+docker run \
+--volume=/var/run/docker.sock:/var/run/docker.sock:ro \
+--volume=/proc/:/host/proc/:ro \
+--volume=/sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
+--env=DD_API_KEY=${DD_API} \
+--env=DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true \
+--publish=8125:8125/udp
+datadog/agent:latest
+```
+
 The code expects to find a Datadog API key and an Application key in the environment. You may generate both of these (for this code specifically) from the Datadog console.
 
 #### Visual Studio Code
@@ -224,8 +239,8 @@ The code expects to find a Datadog API key and an Application key in the environ
             "mode":"auto",
             "program":"${fileDirname}",
             "env":{
-                "DD_API":"[[YOUR-DD-API]]",
-                "DD_APP":"[[YOUR-DD-APP]]"
+                "DD_API":"[[YOUR-API-KEY]]",
+                "DD_APP":"[[YOUR-APP-KEY]]"
             }
         }
     ]
