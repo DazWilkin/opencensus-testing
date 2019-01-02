@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -28,7 +27,7 @@ func main() {
 		Namespace: namespace,
 	})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 	defer exporter.Stop()
 
@@ -39,7 +38,7 @@ func main() {
 		Namespace: namespace,
 	})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 	defer importer.Stop()
 
@@ -53,7 +52,7 @@ func main() {
 	for _, label := range labelNames {
 		key, err := tag.NewKey(label)
 		if err != nil {
-			log.Fatal(err)
+			glog.Fatal(err)
 		}
 		tagKeys = append(tagKeys, key)
 	}
@@ -83,7 +82,7 @@ func main() {
 	for i, key := range tagKeys {
 		ctx, err = tag.New(ctx, tag.Insert(key, labelValues[i]))
 		if err != nil {
-			log.Fatal(err)
+			glog.Fatal(err)
 		}
 	}
 

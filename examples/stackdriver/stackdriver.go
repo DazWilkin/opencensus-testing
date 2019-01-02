@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -19,7 +18,7 @@ import (
 )
 
 const (
-	metricPrefix = "test3"
+	metricPrefix = "namespace"
 )
 
 func main() {
@@ -61,7 +60,7 @@ func main() {
 	for _, labelName := range labelNames {
 		tagKey, err := tag.NewKey(labelName)
 		if err != nil {
-			log.Fatal(err)
+			glog.Fatal(err)
 		}
 		tagKeys = append(tagKeys, tagKey)
 	}
@@ -89,7 +88,7 @@ func main() {
 	for i, tagKey := range tagKeys {
 		ctx, err = tag.New(ctx, tag.Insert(tagKey, labelValues[i]))
 		if err != nil {
-			log.Fatal(err)
+			glog.Fatal(err)
 		}
 	}
 
