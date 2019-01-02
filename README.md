@@ -224,7 +224,7 @@ docker run \
 --volume=/sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
 --env=DD_API_KEY=${DD_API} \
 --env=DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true \
---publish=8125:8125/udp
+--publish=8125:8125/udp \
 datadog/agent:latest
 ```
 
